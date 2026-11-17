@@ -1,44 +1,59 @@
 (() => {
   'use strict';
+  const SIZES = { half: 0.5, normal: 1, xl: 1.5 };
+  const SIZE_LABELS = { half: 'Half', normal: 'Normal', xl: 'Extra large (150%)' };
   const DEFAULTS = {
-    style: 'digital', size: 'normal', seconds: true, h24: true, ticks: true,
-    colorHour: '#ff5a5f', colorMinute: '#4cc9f0', colorSecond: '#ffd166', colorBg: '#000000'
+    style: 'digital', seconds: true, h24: true, ticks: true,
+    sizeHour: 'normal', sizeMinute: 'normal', sizeSecond: 'normal',
+    colors: {
+      digital: { hour: '#ff5a5f', minute: '#4cc9f0', second: '#ffd166', bg: '#000000' },
+      analog:  { hour: '#ff9f1c', minute: '#2ec4b6', second: '#e71d36', bg: '#0b0b14' }
+    }
   };
-  const KEY = 'clock-settings-v1';
-  let s;
-  try { s = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { s = { ...DEFAULTS }; }
+  const KEY = 'clock-settings-v2';
+  const clone = o => JSON.parse(JSON.stringify(o));
+  let s = clone(DEFAULTS);
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+    Object.assign(s, saved);
+    s.colors = { digital: { ...DEFAULTS.colors.digital, ...(saved.colors || {}).digital },
+                 analog:  { ...DEFAULTS.colors.analog,  ...(saved.colors || {}).analog } };
+  } catch {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} };
 
   const $ = id => document.getElementById(id);
   const face = $('face'), panel = $('panel'), gear = $('gear');
   const NS = 'http://www.w3.org/2000/svg';
   const pad = n => String(n).padStart(2, '0');
+  const col = () => s.colors[s.style];
 
-  /* ---------- builders ---------- */
-  let hands = null, digits = null;
+  let hands = null, digits = null, digitalEl = null;
 
+  /* ---------- digital ---------- */
   function buildDigital() {
     face.innerHTML = '';
-    const d = document.createElement('div');
+    const d = digitalEl = document.createElement('div');
     d.className = 'digital';
-    d.innerHTML = '<span data-h></span><span class="sep">:</span><span data-m></span>' +
-      (s.seconds ? '<span class="sep">:</span><span data-s></span>' : '') + '<span class="ampm" data-ap></span>';
+    d.innerHTML = '<span data-h></span><span data-sep1 class="sep">:</span><span data-m></span>' +
+      (s.seconds ? '<span data-sep2 class="sep">:</span><span data-s></span>' : '') + '<span class="ampm" data-ap></span>';
     face.appendChild(d);
-    digits = { h: d.querySelector('[data-h]'), m: d.querySelector('[data-m]'),
-               s: d.querySelector('[data-s]'), ap: d.querySelector('[data-ap]') };
+    const q = a => d.querySelector(`[${a}]`);
+    digits = { h: q('data-h'), m: q('data-m'), s: q('data-s'), ap: q('data-ap'),
+               sep1: q('data-sep1'), sep2: q('data-sep2') };
     hands = null;
-    applyColors();
+    applyStyleVars();
   }
 
+  /* ---------- analog ---------- */
   function el(name, attrs, parent) {
     const e = document.createElementNS(NS, name);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
     parent && parent.appendChild(e);
     return e;
   }
-
   function buildAnalog() {
     face.innerHTML = '';
+    digitalEl = null;
     const wrap = document.createElement('div');
     wrap.className = 'analog';
     const svg = el('svg', { viewBox: '-100 -100 200 200' }, wrap);
@@ -52,9 +67,8 @@
     }
     if (s.ticks) for (let i = 1; i <= 12; i++) {
       const a = i * 30 * Math.PI / 180;
-      const t = el('text', { x: Math.sin(a) * 70, y: -Math.cos(a) * 70 + 5, 'text-anchor': 'middle',
-        'font-size': 14, fill: '#ccc', 'font-weight': 600 }, svg);
-      t.textContent = i;
+      el('text', { x: Math.sin(a) * 70, y: -Math.cos(a) * 70 + 5, 'text-anchor': 'middle',
+        'font-size': 14, fill: '#ccc', 'font-weight': 600 }, svg).textContent = i;
     }
     hands = {
       h: el('line', { y2: -48, 'stroke-width': 6, 'stroke-linecap': 'round' }, svg),
@@ -68,32 +82,49 @@
     el('circle', { r: 3, fill: '#fff' }, svg);
     face.appendChild(wrap);
     digits = null;
-    applyColors();
+    applyStyleVars();
   }
 
-  function applyColors() {
-    document.documentElement.style.setProperty('--bg', s.colorBg);
-    document.querySelector('meta[name=theme-color]').content = s.colorBg;
+  /* ---------- colours & sizes ---------- */
+  function applyStyleVars() {
+    const c = col();
+    document.documentElement.style.setProperty('--bg', c.bg);
+    document.querySelector('meta[name=theme-color]').content = c.bg;
     if (digits) {
-      digits.h.style.color = s.colorHour;
-      digits.m.style.color = s.colorMinute;
-      if (digits.s) digits.s.style.color = s.colorSecond;
-      digits.ap.style.color = s.colorHour;
+      digits.h.style.color = c.hour;   digits.h.style.setProperty('--k', SIZES[s.sizeHour]);
+      digits.m.style.color = c.minute; digits.m.style.setProperty('--k', SIZES[s.sizeMinute]);
+      digits.sep1.style.setProperty('--k', SIZES[s.sizeMinute]);
+      if (digits.s) {
+        digits.s.style.color = c.second; digits.s.style.setProperty('--k', SIZES[s.sizeSecond]);
+        digits.sep2.style.setProperty('--k', SIZES[s.sizeSecond]);
+      }
+      digits.ap.style.color = c.hour;
+      fit();
     }
     if (hands) {
-      hands.h.setAttribute('stroke', s.colorHour);
-      hands.m.setAttribute('stroke', s.colorMinute);
+      hands.h.setAttribute('stroke', c.hour);
+      hands.m.setAttribute('stroke', c.minute);
       if (hands.s) {
-        hands.s.querySelectorAll('line').forEach(l => l.setAttribute('stroke', s.colorSecond));
-        hands.s.querySelector('circle').setAttribute('fill', s.colorSecond);
+        hands.s.querySelectorAll('line').forEach(l => l.setAttribute('stroke', c.second));
+        hands.s.querySelector('circle').setAttribute('fill', c.second);
       }
     }
   }
 
+  // shrink the digital clock if the chosen sizes would overflow the screen
+  function fit() {
+    face.style.transform = '';
+    if (!digitalEl) return;
+    const w = digitalEl.getBoundingClientRect().width;
+    const k = Math.min(1, innerWidth * 0.96 / w);
+    if (k < 1) face.style.transform = `scale(${k})`;
+  }
+  addEventListener('resize', fit);
+
   function build() {
-    face.classList.toggle('half', s.size === 'half');
     s.style === 'analog' ? buildAnalog() : buildDigital();
     tick();
+    fit();
   }
 
   /* ---------- ticking ---------- */
@@ -106,55 +137,59 @@
       digits.h.textContent = s.h24 ? pad(h) : h;
       digits.m.textContent = pad(M);
       if (digits.s) digits.s.textContent = pad(S);
-      digits.ap.textContent = ap;
+      if (digits.ap.textContent !== ap) { digits.ap.textContent = ap; fit(); }
     } else if (hands) {
-      const sec = S + ms / 1000;
-      const min = M + sec / 60;
+      const sec = S + ms / 1000, min = M + sec / 60;
       hands.h.setAttribute('transform', `rotate(${((H % 12) + min / 60) * 30})`);
       hands.m.setAttribute('transform', `rotate(${min * 6})`);
       if (hands.s) hands.s.setAttribute('transform', `rotate(${sec * 6})`);
     }
   }
-
   let raf;
   function loop() {
     tick();
     if (s.style === 'analog' && s.seconds) raf = requestAnimationFrame(loop);
     else raf = setTimeout(loop, 1000 - (Date.now() % 1000) + 5);
   }
-  function restart() {
-    cancelAnimationFrame(raf); clearTimeout(raf);
-    loop();
-  }
+  function restart() { cancelAnimationFrame(raf); clearTimeout(raf); loop(); }
 
   /* ---------- settings UI ---------- */
+  for (const id of ['sizeHour', 'sizeMinute', 'sizeSecond'])
+    for (const k in SIZES) $(id).add(new Option(SIZE_LABELS[k], k));
+
   function syncUI() {
+    const digital = s.style === 'digital', c = col();
     document.querySelector(`input[name=style][value=${s.style}]`).checked = true;
-    document.querySelector(`input[name=size][value=${s.size}]`).checked = true;
     $('seconds').checked = s.seconds; $('h24').checked = s.h24; $('ticks').checked = s.ticks;
-    $('colorHour').value = s.colorHour; $('colorMinute').value = s.colorMinute;
-    $('colorSecond').value = s.colorSecond; $('colorBg').value = s.colorBg;
+    for (const id of ['sizeHour', 'sizeMinute', 'sizeSecond']) $(id).value = s[id];
+    $('colorHour').value = c.hour; $('colorMinute').value = c.minute;
+    $('colorSecond').value = c.second; $('colorBg').value = c.bg;
+    $('colorLegend').textContent = `Colors (${s.style})`;
+    $('sizeSet').classList.toggle('dim', !digital);
+    $('secSizeRow').classList.toggle('dim', !s.seconds);
     $('secColorRow').classList.toggle('dim', !s.seconds);
-    $('h24row').classList.toggle('dim', s.style !== 'digital');
-    $('ticks').closest('.row').classList.toggle('dim', s.style !== 'analog');
+    $('h24row').classList.toggle('dim', !digital);
+    $('ticks').closest('.row').classList.toggle('dim', digital);
   }
   function change(patch, rebuild) {
     Object.assign(s, patch); save(); syncUI();
-    if (rebuild) { build(); restart(); } else applyColors();
+    if (rebuild) { build(); restart(); } else applyStyleVars();
   }
 
   document.querySelectorAll('input[name=style]').forEach(i => i.onchange = () => change({ style: i.value }, true));
-  document.querySelectorAll('input[name=size]').forEach(i => i.onchange = () => change({ size: i.value }, true));
   $('seconds').onchange = e => change({ seconds: e.target.checked }, true);
   $('h24').onchange = e => change({ h24: e.target.checked }, false);
   $('ticks').onchange = e => change({ ticks: e.target.checked }, true);
-  for (const k of ['colorHour', 'colorMinute', 'colorSecond', 'colorBg'])
-    $(k).oninput = e => change({ [k]: e.target.value }, false);
+  for (const id of ['sizeHour', 'sizeMinute', 'sizeSecond'])
+    $(id).onchange = e => change({ [id]: e.target.value }, false);
+  const colMap = { colorHour: 'hour', colorMinute: 'minute', colorSecond: 'second', colorBg: 'bg' };
+  for (const id in colMap)
+    $(id).oninput = e => { col()[colMap[id]] = e.target.value; save(); applyStyleVars(); };
 
   const setPanel = open => { panel.hidden = !open; gear.setAttribute('aria-expanded', open); };
   gear.onclick = () => setPanel(panel.hidden);
   $('close').onclick = () => setPanel(false);
-  $('reset').onclick = () => change({ ...DEFAULTS }, true);
+  $('reset').onclick = () => { const st = s.style; s = clone(DEFAULTS); s.style = st; save(); syncUI(); build(); restart(); };
   $('fs').onclick = () => {
     if (document.fullscreenElement) document.exitFullscreen();
     else document.documentElement.requestFullscreen?.().catch(() => {});
@@ -162,20 +197,16 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setPanel(false); });
   face.addEventListener('dblclick', () => $('fs').click());
 
-  // fade gear when idle
   let idle;
   const wake = () => { document.body.classList.remove('idle'); clearTimeout(idle);
     idle = setTimeout(() => panel.hidden && document.body.classList.add('idle'), 4000); };
   ['mousemove', 'touchstart', 'keydown'].forEach(ev => addEventListener(ev, wake, { passive: true }));
   wake();
 
-  // keep screen awake
-  let lock;
-  async function wakeLock() { try { lock = await navigator.wakeLock?.request('screen'); } catch {} }
+  async function wakeLock() { try { await navigator.wakeLock?.request('screen'); } catch {} }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { wakeLock(); restart(); } });
   wakeLock();
 
   syncUI(); build(); restart();
-
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

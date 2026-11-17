@@ -28,10 +28,11 @@
     <label class="seg"><input type="radio" name="style" value="analog"><span>Analog</span></label>
   </fieldset>
 
-  <fieldset>
-    <legend>Size</legend>
-    <label class="seg"><input type="radio" name="size" value="normal"><span>Normal</span></label>
-    <label class="seg"><input type="radio" name="size" value="half"><span>Half</span></label>
+  <fieldset id="sizeSet">
+    <legend>Digital size</legend>
+    <label class="row">Hour <select id="sizeHour"></select></label>
+    <label class="row">Minute <select id="sizeMinute"></select></label>
+    <label class="row" id="secSizeRow">Second <select id="sizeSecond"></select></label>
   </fieldset>
 
   <fieldset>
@@ -42,7 +43,7 @@
   </fieldset>
 
   <fieldset>
-    <legend>Colors</legend>
+    <legend id="colorLegend">Colors</legend>
     <label class="row">Hour <input type="color" id="colorHour"></label>
     <label class="row">Minute <input type="color" id="colorMinute"></label>
     <label class="row" id="secColorRow">Second <input type="color" id="colorSecond"></label>
