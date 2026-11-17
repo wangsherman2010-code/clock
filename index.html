@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clock Face</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="stage" aria-live="off">
+  <div id="face"></div>
+</main>
+
+<button id="gear" aria-label="Settings" aria-expanded="false">⚙</button>
+
+<aside id="panel" hidden>
+  <h2>Clock settings</h2>
+
+  <fieldset>
+    <legend>Face</legend>
+    <label class="seg"><input type="radio" name="style" value="digital"><span>Digital</span></label>
+    <label class="seg"><input type="radio" name="style" value="analog"><span>Analog</span></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Size</legend>
+    <label class="seg"><input type="radio" name="size" value="normal"><span>Normal</span></label>
+    <label class="seg"><input type="radio" name="size" value="half"><span>Half</span></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Options</legend>
+    <label class="row"><input type="checkbox" id="seconds"> Show seconds</label>
+    <label class="row" id="h24row"><input type="checkbox" id="h24"> 24-hour (digital)</label>
+    <label class="row"><input type="checkbox" id="ticks"> Show numbers / ticks (analog)</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Colors</legend>
+    <label class="row">Hour <input type="color" id="colorHour"></label>
+    <label class="row">Minute <input type="color" id="colorMinute"></label>
+    <label class="row" id="secColorRow">Second <input type="color" id="colorSecond"></label>
+    <label class="row">Background <input type="color" id="colorBg"></label>
+  </fieldset>
+
+  <div class="actions">
+    <button id="reset">Reset</button>
+    <button id="fs">Fullscreen</button>
+    <button id="close">Done</button>
+  </div>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>
