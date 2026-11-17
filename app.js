@@ -3,11 +3,11 @@
   const SIZES = { half: 0.5, normal: 1, xl: 1.5 };
   const SIZE_LABELS = { half: 'Half', normal: 'Normal', xl: 'Extra large (150%)' };
   const DEFAULTS = {
-    style: 'digital', seconds: true, h24: true, ticks: true,
+    style: 'digital', seconds: true, showSep: true, h24: true, ticks: true,
     sizeHour: 'normal', sizeMinute: 'normal', sizeSecond: 'normal',
     colors: {
-      digital: { hour: '#ff5a5f', minute: '#4cc9f0', second: '#ffd166', bg: '#000000' },
-      analog:  { hour: '#ff9f1c', minute: '#2ec4b6', second: '#e71d36', bg: '#0b0b14' }
+      digital: { hour: '#ff5a5f', minute: '#4cc9f0', second: '#ffd166', sep: '#aaaaaa', bg: '#000000' },
+      analog:  { hour: '#ff9f1c', minute: '#2ec4b6', second: '#e71d36', sep: '#aaaaaa', bg: '#0b0b14' }
     }
   };
   const KEY = 'clock-settings-v2';
@@ -99,6 +99,9 @@
         digits.sep2.style.setProperty('--k', SIZES[s.sizeSecond]);
       }
       digits.ap.style.color = c.hour;
+      for (const sp of [digits.sep1, digits.sep2]) if (sp) {
+        sp.style.color = c.sep; sp.style.display = s.showSep ? '' : 'none';
+      }
       fit();
     }
     if (hands) {
@@ -160,14 +163,16 @@
   function syncUI() {
     const digital = s.style === 'digital', c = col();
     document.querySelector(`input[name=style][value=${s.style}]`).checked = true;
-    $('seconds').checked = s.seconds; $('h24').checked = s.h24; $('ticks').checked = s.ticks;
+    $('seconds').checked = s.seconds; $('showSep').checked = s.showSep; $('h24').checked = s.h24; $('ticks').checked = s.ticks;
     for (const id of ['sizeHour', 'sizeMinute', 'sizeSecond']) $(id).value = s[id];
     $('colorHour').value = c.hour; $('colorMinute').value = c.minute;
-    $('colorSecond').value = c.second; $('colorBg').value = c.bg;
+    $('colorSecond').value = c.second; $('colorSep').value = c.sep; $('colorBg').value = c.bg;
     $('colorLegend').textContent = `Colors (${s.style})`;
     $('sizeSet').classList.toggle('dim', !digital);
     $('secSizeRow').classList.toggle('dim', !s.seconds);
     $('secColorRow').classList.toggle('dim', !s.seconds);
+    $('sepRow').classList.toggle('dim', !digital);
+    $('sepColorRow').classList.toggle('dim', !digital || !s.showSep);
     $('h24row').classList.toggle('dim', !digital);
     $('ticks').closest('.row').classList.toggle('dim', digital);
   }
@@ -178,11 +183,12 @@
 
   document.querySelectorAll('input[name=style]').forEach(i => i.onchange = () => change({ style: i.value }, true));
   $('seconds').onchange = e => change({ seconds: e.target.checked }, true);
+  $('showSep').onchange = e => change({ showSep: e.target.checked }, false);
   $('h24').onchange = e => change({ h24: e.target.checked }, false);
   $('ticks').onchange = e => change({ ticks: e.target.checked }, true);
   for (const id of ['sizeHour', 'sizeMinute', 'sizeSecond'])
     $(id).onchange = e => change({ [id]: e.target.value }, false);
-  const colMap = { colorHour: 'hour', colorMinute: 'minute', colorSecond: 'second', colorBg: 'bg' };
+  const colMap = { colorHour: 'hour', colorMinute: 'minute', colorSecond: 'second', colorSep: 'sep', colorBg: 'bg' };
   for (const id in colMap)
     $(id).oninput = e => { col()[colMap[id]] = e.target.value; save(); applyStyleVars(); };
 
