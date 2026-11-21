@@ -251,8 +251,37 @@
   each(['mousemove', 'touchstart', 'keydown'], function (ev) { window.addEventListener(ev, wake, false); });
   wake();
 
-  function wakeLock() { try { var p = navigator.wakeLock && navigator.wakeLock.request('screen'); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) { wakeLock(); restart(); } });
+  // Keep the screen on. Modern browsers: Screen Wake Lock API.
+  // Old browsers without it: loop a tiny silent hidden video (needs one tap to start).
+  var lock = null, videoOn = false;
+  function wakeLock() {
+    try {
+      if (navigator.wakeLock) {
+        var p = navigator.wakeLock.request('screen');
+        if (p && p.then) p.then(function (l) { lock = l; }, function () {});
+        return;
+      }
+    } catch (e) {}
+    startVideo();
+  }
+  function startVideo() {
+    var v = $('awake');
+    if (!v || videoOn) return;
+    try {
+      var p = v.play();
+      if (p && p.then) p.then(function () { videoOn = true; }, function () {});
+      else videoOn = true;
+    } catch (e) {}
+  }
+  if (!navigator.wakeLock) {
+    var kick = function () { startVideo(); };
+    each(['touchstart', 'touchend', 'click', 'mousedown'], function (ev) {
+      document.addEventListener(ev, kick, false);
+    });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { videoOn = false; wakeLock(); restart(); }
+  });
   wakeLock();
 
   syncUI(); build(); restart();
