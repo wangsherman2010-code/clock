@@ -155,6 +155,7 @@
     if (zv) zv.textContent = Math.round(curScale * 100) + '%' + (s.fontScale ? '' : ' (auto)');
   }
   window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', function () { setTimeout(fit, 100); setTimeout(fit, 400); });
 
   function build() {
     if (s.style === 'analog') buildAnalog(); else buildDigital();
@@ -251,9 +252,10 @@
     $(id).oninput = function (e) { col()[colMap[id]] = e.target.value; save(); applyStyleVars(); };
   });
 
-  function setPanel(open) { panel.hidden = !open; gear.setAttribute('aria-expanded', open); }
+  function setPanel(open) { panel.hidden = !open; $('floatDone').hidden = !open; gear.setAttribute('aria-expanded', open); }
   gear.onclick = function () { setPanel(panel.hidden); };
   $('close').onclick = function () { setPanel(false); };
+  $('floatDone').onclick = function () { setPanel(false); };
   $('reset').onclick = function () {
     var st = s.style; s = clone(DEFAULTS); s.style = st; save(); syncUI(); build(); restart();
   };
