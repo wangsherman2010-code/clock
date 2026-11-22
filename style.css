@@ -11,7 +11,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color:
   font-size: 15vw; font-size: min(15vw, 30vh); letter-spacing: .02em; }
 
 .digital > .ampm { font-size: .25em; margin-left: .3em; }
-.digital .sep { opacity: .7; color: inherit; }
+.digital .sep { display: inline-block; width: .5em; text-align: center; position: relative; top: -.12em; opacity: .85; }
 
 /* analog */
 .analog { width: 92vmin; height: 92vmin; }

@@ -99,6 +99,7 @@
 
   /* ---------- colours & sizes ---------- */
   function em(k) { return SIZES[k] + 'em'; }
+  function emSep(k) { return (SIZES[k] * 0.7) + 'em'; }   // separator stays smaller than digits
   function applyStyleVars() {
     var c = col();
     document.body.style.background = c.bg;
@@ -107,10 +108,10 @@
     if (digits) {
       digits.h.style.color = c.hour;   digits.h.style.fontSize = em(s.sizeHour);
       digits.m.style.color = c.minute; digits.m.style.fontSize = em(s.sizeMinute);
-      digits.sep1.style.fontSize = em(s.sizeMinute);
+      digits.sep1.style.fontSize = emSep(s.sizeMinute);
       if (digits.s) {
         digits.s.style.color = c.second; digits.s.style.fontSize = em(s.sizeSecond);
-        digits.sep2.style.fontSize = em(s.sizeSecond);
+        digits.sep2.style.fontSize = emSep(s.sizeSecond);
       }
       digits.ap.style.color = c.hour;
       each([digits.sep1, digits.sep2], function (sp) {
