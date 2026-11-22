@@ -4,7 +4,7 @@
   var SIZES = { half: 0.5, normal: 1, xl: 1.5 };
   var SIZE_LABELS = { half: 'Half', normal: 'Normal', xl: 'Extra large (150%)' };
   var DEFAULTS = {
-    style: 'digital', seconds: true, showSep: true, h24: true, ticks: true,
+    style: 'digital', fontScale: null, seconds: true, showSep: true, h24: true, ticks: true,
     sizeHour: 'normal', sizeMinute: 'normal', sizeSecond: 'normal',
     colors: {
       digital: { hour: '#ff5a5f', minute: '#4cc9f0', second: '#ffd166', sep: '#aaaaaa', bg: '#000000' },
@@ -129,16 +129,30 @@
     }
   }
 
+  var curScale = 1;
   function setScale(k) {
-    var t = k < 1 ? 'scale(' + k + ')' : '';
+    var t = k === 1 ? '' : 'scale(' + k + ')';
     face.style.transform = t; face.style.webkitTransform = t;
   }
-  // shrink the digital clock if the chosen sizes would overflow the screen
+  function fillScale() {            // scale at which the digital clock fills the screen
+    setScale(1);
+    var r = digitalEl.getBoundingClientRect();
+    return Math.min(window.innerWidth * 0.98 / r.width, window.innerHeight * 0.98 / r.height);
+  }
+  // Auto mode shrinks the digital clock if it would overflow; manual mode uses s.fontScale.
   function fit() {
     setScale(1);
-    if (!digitalEl) return;
-    var w = digitalEl.getBoundingClientRect().width;
-    setScale(Math.min(1, window.innerWidth * 0.96 / w));
+    curScale = 1;
+    if (digitalEl) {
+      if (s.fontScale) curScale = s.fontScale;
+      else {
+        var w = digitalEl.getBoundingClientRect().width;
+        curScale = Math.min(1, window.innerWidth * 0.96 / w);
+      }
+      setScale(curScale);
+    }
+    var zv = $('zoomVal');
+    if (zv) zv.textContent = Math.round(curScale * 100) + '%' + (s.fontScale ? '' : ' (auto)');
   }
   window.addEventListener('resize', fit);
 
@@ -221,6 +235,17 @@
   each(SIZE_IDS, function (id) {
     $(id).onchange = function (e) { var p = {}; p[id] = e.target.value; change(p, false); };
   });
+  function zoomBy(f) {
+    if (!digitalEl) return;
+    s.fontScale = Math.max(0.05, curScale * f); save(); fit();
+  }
+  $('zoomIn').onclick = function () { zoomBy(1.15); };
+  $('zoomOut').onclick = function () { zoomBy(1 / 1.15); };
+  $('zoomFit').onclick = function () {
+    if (!digitalEl) return;
+    s.fontScale = fillScale(); save(); fit();
+  };
+  $('zoomAuto').onclick = function () { s.fontScale = null; save(); fit(); };
   var colMap = { colorHour: 'hour', colorMinute: 'minute', colorSecond: 'second', colorSep: 'sep', colorBg: 'bg' };
   each(Object.keys(colMap), function (id) {
     $(id).oninput = function (e) { col()[colMap[id]] = e.target.value; save(); applyStyleVars(); };
@@ -240,7 +265,11 @@
     else if (reqFs) { try { reqFs.call(root); } catch (e) {} }
     else alert('Fullscreen is not supported in this browser.');
   };
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' || e.keyCode === 27) setPanel(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) setPanel(false);
+    else if (e.key === '+' || e.key === '=') zoomBy(1.15);
+    else if (e.key === '-' || e.key === '_') zoomBy(1 / 1.15);
+  });
   face.addEventListener('dblclick', function () { $('fs').onclick(); });
 
   var idle;

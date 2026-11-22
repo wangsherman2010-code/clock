@@ -47,3 +47,9 @@ legend { padding: 0 6px; color: #aaa; font-size: 13px; }
 .dim { opacity: .4; pointer-events: none; }
 
 select { background: #2a2a2a; color: #fff; border: 1px solid #555; border-radius: 6px; padding: 6px 8px; font-size: 15px; }
+.zoom { display: -webkit-flex; display: flex; align-items: center; }
+.zoom button, button.wide { background: #2a2a2a; color: #fff; border: 1px solid #555; border-radius: 8px; font-size: 20px; cursor: pointer; }
+.zoom button { width: 44px; height: 40px; }
+.zoom output { min-width: 64px; text-align: center; font-size: 15px; }
+button.wide { flex: 1; font-size: 14px; padding: 9px; margin-right: 8px; }
+button.wide:last-child { margin-right: 0; }
